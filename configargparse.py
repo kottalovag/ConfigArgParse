@@ -512,7 +512,7 @@ class ArgumentParser(argparse.ArgumentParser):
         env_var_args = []
         nargs = False
         actions_with_env_var_values = [a for a in self._actions
-            if not a.is_positional_arg and lookup_env_var(a) is not None
+            if not a.is_positional_arg and a.env_var and lookup_env_var(a) is not None
                 and not already_on_command_line(args, a.option_strings, self.prefix_chars)]
         for action in actions_with_env_var_values:
             key, value = lookup_env_var(action)
