@@ -838,7 +838,7 @@ class TestMisc(TestCase):
 
         self.assertRegex(self.format_help(),
             r'usage: .* \[-h\] -c CONFIG_FILE\s+'
-            r'\[-w CONFIG_OUTPUT_PATH\]\s* --arg1 ARG1\s*\[--flag\]\s*'
+            r'\[-w CONFIG_OUTPUT_PATH\]\s* --arg1\s*ARG1\s*\[--flag\]\s*'
             'Args that start with \'--\' \\(eg. --arg1\\) can also be set in a '
             r'config file\s*\(~/.myconfig or specified via -c\).\s*'
             r'Config file syntax allows: key=value,\s*flag=true, stuff=\[a,b,c\] '
