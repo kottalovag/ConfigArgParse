@@ -347,9 +347,12 @@ class ArgumentParser(argparse.ArgumentParser):
             auto_env_var_prefix: If set to a string instead of None, all config-
                 file-settable options will become also settable via environment
                 variables whose names are this prefix followed by the config
-                file key, all in upper case. (eg. setting this to "foo_" will
+                file key in upper case. (eg. setting this to "FOO_" will
                 allow an arg like "--my-arg" to also be set via the FOO_MY_ARG
-                environment variable)
+                environment variable,
+                while "bar_" will sense both bar_MY_ARG and BAR_MY_ARG)
+                Note: this auto_env_var_prefix will be only applied to arguments
+                for which env_var was not explicitly set.
             default_config_files: When specified, this list of config files will
                 be parsed in order, with the values from each config file
                 taking precedence over pervious ones. This allows an application
@@ -497,17 +500,22 @@ class ArgumentParser(argparse.ArgumentParser):
                     stripped_config_file_key = config_file_keys[0].strip(
                         self.prefix_chars)
                     a.env_var = (self._auto_env_var_prefix +
-                                 stripped_config_file_key).replace('-', '_').upper()
+                                 stripped_config_file_key.upper()).replace('-', '_')
 
         # add env var settings to the commandline that aren't there already
+        def lookup_env_var(action):
+            for key in [action.env_var, action.env_var.upper()]:
+                if key in env_vars:
+                    return key, env_vars[key]
+            return None
+
         env_var_args = []
         nargs = False
         actions_with_env_var_values = [a for a in self._actions
-            if not a.is_positional_arg and a.env_var and a.env_var in env_vars
+            if not a.is_positional_arg and lookup_env_var(a) is not None
                 and not already_on_command_line(args, a.option_strings, self.prefix_chars)]
         for action in actions_with_env_var_values:
-            key = action.env_var
-            value = env_vars[key]
+            key, value = lookup_env_var(action)
             # Make list-string into list.
             if action.nargs or isinstance(action, argparse._AppendAction):
                 nargs = True
@@ -523,9 +531,10 @@ class ArgumentParser(argparse.ArgumentParser):
             args = env_var_args + args
 
         if env_var_args:
-            self._source_to_settings[_ENV_VAR_SOURCE_KEY] = OrderedDict(
-                [(a.env_var, (a, env_vars[a.env_var]))
-                    for a in actions_with_env_var_values])
+            self._source_to_settings[_ENV_VAR_SOURCE_KEY] = OrderedDict()
+            for a in actions_with_env_var_values:
+                present_env_var_key, value = lookup_env_var(a)
+                self._source_to_settings[_ENV_VAR_SOURCE_KEY][present_env_var_key] = (a, value)
 
         # before parsing any config files, check if -h was specified.
         supports_help_arg = any(
@@ -911,7 +920,7 @@ class ArgumentParser(argparse.ArgumentParser):
             for env_var, a in env_var_actions:
                 if a.help == SUPPRESS:
                     continue
-                env_var_help_string = "   [env var: %s]" % env_var
+                env_var_help_string = "   [env var: %s (or %s)]" % (env_var, env_var.upper())
                 if not a.help:
                     a.help = ""
                 if env_var_help_string not in a.help:
