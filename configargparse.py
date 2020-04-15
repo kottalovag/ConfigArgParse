@@ -920,7 +920,8 @@ class ArgumentParser(argparse.ArgumentParser):
             for env_var, a in env_var_actions:
                 if a.help == SUPPRESS:
                     continue
-                env_var_help_string = "   [env var: %s (or %s)]" % (env_var, env_var.upper())
+                env_var_help_string = "   [env var: %s]" % env_var if env_var == env_var.upper() \
+                    else "{} (or {})".format(env_var, env_var.upper())
                 if not a.help:
                     a.help = ""
                 if env_var_help_string not in a.help:
